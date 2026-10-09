@@ -1,0 +1,17 @@
+sudo bash -c '
+dnf install -y httpd
+systemctl enable --now httpd
+TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 60")
+ID=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/instance-id)
+AZ=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/availability-zone)
+echo "<h1>STANDBY (DR region)</h1><h2>Instance: $ID</h2><h2>AZ: $AZ</h2>" > /var/www/html/index.html
+'
+curl localhost
+
+
+
+dig +short app.dr.lab
+curl -s app.dr.lab
+
+
+while true; do echo "$(date +%T) $(curl -s --max-time 3 app.dr.lab | grep -o 'STANDBY\|Instance: i-[a-z0-9]*' | head -1)"; sleep 2; done
